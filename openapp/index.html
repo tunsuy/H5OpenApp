@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
+		<title>应用分发演示</title>
+		<link rel="stylesheet" type="text/css" href="css/inApplication.css" />
+		<script type="text/javascript" src="js/zepto.js"></script>
+		<script type="text/javascript" src="js/template.js"></script>
+	</head>
+	<body>
+		<div class="in-application">
+			<div class="in-application-main">
+				<ul id="ct">
+				</ul>
+			</div>
+		</div>
+		
+		<div style="margin:50px 20px 10px 20px;">演示EasyConnect更新时，先把EasyConnect卸载，再点击安装旧包。</div>
+		<a class="application-enter" style="float:none;margin-left:20px;" id="oldinstall" href="#">安装旧包</a>
+	</body>
+</html>
+<script>
+var list = [{
+	img:"img/ec.png",
+	name:"EasyConnect",
+	desc:"",
+	iosVersion:"7.1.9",
+	androidVersion:"8.0.4.5",
+	iosPacket:"com.sangfor.easyconnect",
+	androidPacket:"com.sangfor.vpn.client.phone",
+	//iosOpenUrl:"ioseasyconnect://",
+	//androidOpenUrl:"sangfor://easyconnect",
+	//iosDownloadUrl:"itms-services://?action=download-manifest&url=https://ea.sangfor.com:8800/d/ec_latest.plist",//7.1.7
+	iosDownloadUrl:"itms-services://?action=download-manifest&url=https://dn-moadl.qbox.me/ec.plist",//7.1.9
+	androidDownloadUrl:"https://dn-moadl.qbox.me/EasyConnectPhone.apk" //8.0.4.5
+	//androidDownloadUrl:"https://dn-moadl.qbox.me/EasyConnectold.apk" //7.1.4.5.35357
+},{
+	img:"img/hm.png",
+	name:"海马助手",
+	desc:"",
+	iosVersion:"5.0.7.15",
+	androidVersion:"1.4.1",
+	iosPacket:"com.nfit.seone",
+	androidPacket:"me.haima.androidassist",
+	//iosOpenUrl:"haima://",
+	//androidOpenUrl:"tencent101129402://",
+	iosDownloadUrl:"itms-services://?action=download-manifest&url=https://dn-moadl.qbox.me/gw.plist",
+	androidDownloadUrl:"https://dn-moadl.qbox.me/gw_1.4.1.apk"
+}];
+var pix = /android/.test(navigator.userAgent.toLowerCase())?"android":"ios";
+if(pix==="ios"){
+	$("#oldinstall")[0].href="itms-services://?action=download-manifest&url=https://ea.sangfor.com:8800/d/ec_latest.plist";
+}else{
+	$("#oldinstall")[0].href="https://dn-moadl.qbox.me/EasyConnectold.apk";
+}
+var appStatus = {};
+
+
+$("#ct").on("tap",function(e){
+	var idx = e.target.getAttribute('idx');
+	if(idx===null){
+		idx = e.target.parentElement.getAttribute('idx');
+	}
+	if(idx===null){
+		return;
+	}
+	var data = list[idx];
+	if(data.status===0){
+		openApp(data);
+	}else{
+		download(data);
+	}
+});
+
+var statusText = ['启动','安装','更新'];
+function renderui(){
+	var html = [];
+	
+	$.each(list,function(idx,item){
+		var version = appStatus[item[pix+"Packet"]],status=1;
+		if(version!==undefined){
+			if(version>=item[pix+"Version"]){
+				status = 0;
+			}else{
+				status = 2;
+			}
+		}
+		item.status = status;
+		html.push(['<li>',
+			'<a class="application-link clearfix" src="">',
+			'<span class="application-icon"><img src="',item.img,'" width=32px height=32px /></span>',
+			'<div class="application-describe">',
+			'<h3>',item.name,'</h3>',
+			'<p>',item.desc,'</p>',
+			'</div>',
+			'<div class="application-link-right clearfix" idx="',idx,'">',
+			'<span class="application-enter">',statusText[item.status],'</span>',
+			'</div>',
+			'</a>',
+			'</li>'].join('')
+		);
+	});
+	$("#ct").html(html.join(''));
+}
+//renderui();
+
+function checkExistApps(){
+	var packets = [];
+	$.each(list,function(idx,item){
+		packets.push(item[pix+"Packet"]);
+	});
+	
+	KoudaiJSBridge.invoke("checkExistApps",{packets:packets},function(rv,rsp){
+		var v = rv.data;
+		if(!v)v={};
+		appStatus = v;
+		renderui();
+		//alert(JSON.stringify(v));
+	})
+}
+
+document.addEventListener("KoudaiJSBridgeReady",function(){
+	checkExistApps();
+	setInterval(checkExistApps,5000);
+});
+
+
+function download(data){
+	window.location = data[pix+"DownloadUrl"];
+}
+
+function openApp(data){
+	KoudaiJSBridge.invoke("openApp",{packet:data[pix+"Packet"],url:data[pix+"OpenUrl"]},function(rv,rsp){
+		if(!rv.installed){
+			checkExistApps();
+		}
+	})
+}
+function getUrlParam(val){
+	var reg = new RegExp("(^|\\?|&)"+ val +"=([^&#]*)(\\s|&|$|#)", "i");
+	if (reg.test(location.href)) return decodeURIComponent(RegExp.$2); 
+	return "";
+}
+if(getUrlParam("debug")){
+	appStatus = {"com.aecc.worn":"5.0.7.14","com.sangfor.easyconnect":"7.1.8"};
+	renderui();
+	setTimeout(function(){
+	window.location = "iOSEasyConnect://";
+	},1000);
+}
+</script>

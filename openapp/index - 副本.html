@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
+		<title>应用分发演示</title>
+		<link rel="stylesheet" type="text/css" href="css/inApplication.css" />
+	</head>
+	<body>
+		<div class="in-application">
+			<div class="in-application-main">
+				<ul>
+					<li>
+						<a class="application-link clearfix" src="">
+							<span class="application-icon"><img src="img/ec.png" width=32px height=32px /></span>
+							<div class="application-describe">
+								<h3>EasyConnect</h3>
+								<p>应用启动时会自动检测是否安装</p>
+							</div>
+							<div class="application-link-right clearfix">
+								<span id="app1" class="application-enter">启动</span>
+								<div class="application-arrow">></div>
+							</div>
+						</a>
+					</li>
+					<li>
+						<a class="application-link clearfix" src="">
+							<span class="application-icon"><img src="img/hm.png" width=32px height=32px /></span>
+							<div class="application-describe">
+								<h3>海马助手</h3>
+								<p>应用启动时会自动检测是否安装</p>
+							</div>
+							<div class="application-link-right clearfix">
+								<span id="app2" class="application-enter">启动</span>
+								<div class="application-arrow">></div>
+							</div>
+						</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</body>
+</html>
+<script>
+var list = [{
+	img:"",
+	packet:"com.sangfor.vpn.client.phone",
+	name:"EasyConnect",
+	desc:"启动时会自动检测是否安装",
+	iosOpenUrl:"iOSEasyConnect://",
+	androidOpenUrl:"sangfor://easyconnect",
+	iosDownloadUrl:"itms-services://?action=download-manifest&url=https://ea.sangfor.com:8800/d/ec_latest.plist",
+	androidDownloadUrl:"https://dn-moadl.qbox.me/EasyConnectPhone.apk"
+},{
+	img:"",
+	packet:"me.haima.androidassist",
+	name:"海马助手",
+	desc:"启动时会自动检测是否安装",
+	iosOpenUrl:"haima://xxx",
+	androidOpenUrl:"tencent101129402://",
+	iosDownloadUrl:"itms-services://?action=download-manifest&url=https://www.haima.me/download/0.07174668404626128/gw.plist",
+	androidDownloadUrl:"http://dl.haima.me/download/haimaandroid/gw_1.4.1.apk"
+}];
+var pix = /android/.test(navigator.userAgent.toLowerCase())?"android":"ios";
+
+document.getElementById("app1").onclick = function(){
+	openApp(0);
+};
+
+document.getElementById("app2").onclick = function(){
+	openApp(1);
+};
+
+var ifr = document.createElement("iframe"),time;  
+ifr.setAttribute('style', 'display:none'); 
+document.body.appendChild(ifr);
+ifr.onload = function(){
+	var data = ifr.data;
+	var a=confirm(data.name+"尚未安装?是否跳下载安装");
+	if(!a)return;
+	window.location = data[pix+"DownloadUrl"];
+}
+
+var openApp = pix==="ios"?iosOpenApp:koudaiOpenApp;
+	
+function iosOpenApp(i) {
+	var data = list[i];
+	//alert(data[pix+"OpenUrl"]);
+	ifr.setAttribute('src', data[pix+"OpenUrl"]);
+	//ifr.setAttribute('src', "https://baidu.com");
+	ifr.data = data;
+	//window.location = data[pix+"DownloadUrl"];
+	//window.location = data[pix+"OpenUrl"];
+	/*window.location = "sangforpocket://com.sangfor.pocket/mod=notify";*/
+	//if(pix === "ios"){
+		time = new Date().getTime();
+		setTimeout(function(){
+			if((new Date().getTime()-time)<15){
+				//var a=confirm(data.name+"尚未安装?是否跳转到安装界面");
+				//if(!a)return;
+				window.location = data[pix+"DownloadUrl"];
+			};
+		},0);
+//	}
+}
+
+function koudaiOpenApp(i){
+	var data = list[i];
+	KoudaiJSBridge.invoke("openApp",{packet:data.packet,url:data.androidOpenUrl},function(rv,rsp){
+		if(!rv.installed){
+		KoudaiJSBridge.invoke("showConfirm", {
+			msg: data.name+"尚未安装?是否下载安装"
+		}, function(btn) {
+			if (btn === "yes") {
+				window.location = data[pix+"DownloadUrl"];
+			}
+		});
+			//var a=confirm(data.name+"尚未安装?是否跳下载安装");
+			//if(!a)return;
+			//window.location = data[pix+"DownloadUrl"];
+		}
+	})
+}
+
+</script>
